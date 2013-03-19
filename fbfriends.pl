@@ -38,10 +38,33 @@ my $filehandle = html_file($file);
 $tree->parse_file($filehandle);
 
 my @divfriendlist = $tree->look_down("_tag","div","class","fsl fwb fcb");
-my @friendlist = map { my $name = $_->as_text(); $name =~ s/^\s*//; $name } @divfriendlist;
+my %friendlist = map { get_uid_and_name($_) } @divfriendlist;
 $tree->delete();
 
-map { printf "%s\n", $_ } @friendlist;
+map { printf "%s %s\n", $_, $friendlist{$_} } (keys %friendlist);
+
+sub get_uid_and_name ($) {
+  # $_[0] is an HTML::Element object whose HTML looks like:
+  # <div class="fsl fwb fcb"><a data-hovercard="/ajax/hovercard/user.php?id=000000000"
+  # href="https://www.facebook.com/nickname">Name First</a></div>
+
+  # get the name
+  my $name = $_[0]->as_text();
+  $name =~ s/^\s*//; # strip leading spaces.
+
+  # get the uid
+  my $uid = $_[0]->as_HTML();
+  if ($uid =~ /\?id=(\d+)/) {# only leave uid.
+    $uid = $1;
+  }
+  else {
+    $uid = 0
+  }
+
+  # we're done
+  return $uid, $name;
+}
+
 
 sub show_help_and_exit {
   printf STDERR << "EOF";
